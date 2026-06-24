@@ -92,7 +92,7 @@ The application is a static web app made of three primary files:
 
 It is hosted on GitHub Pages and does not require a backend service. The original JPEG is retained only as source/reference material; the user-facing tool is native web code.
 
-The layout engine now uses progressive packing passes for larger card labels and falls back to a fresh deterministic stage layout if a pass cannot place every card. This prevents any stage from reusing stale source coordinates, which keeps oversized cards from collapsing into a pile when text sizing changes.
+The layout engine now uses progressive packing passes for larger card labels and falls back to a fresh deterministic stage layout if a pass cannot place every card. It validates each card by its four corners against the visible circle border, preventing stale source coordinates, card pileups, and cards crossing out of their stage circles when text sizing changes.
 
 ## Data Model
 

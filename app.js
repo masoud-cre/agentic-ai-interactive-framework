@@ -688,22 +688,22 @@ const STAGE_CONCEPTS = {
 };
 
 const CARD_PROFILE = {
-  ai: { min: 156, max: 320, base: 206, height: 78, minHeight: 66, maxHeight: 150, idealX: 280, fill: .52 },
-  deep: { min: 174, max: 350, base: 236, height: 90, minHeight: 72, maxHeight: 158, idealX: 560, fill: .58 },
-  gen: { min: 182, max: 370, base: 252, height: 94, minHeight: 74, maxHeight: 162, idealX: 900, fill: .58 },
-  agents: { min: 184, max: 386, base: 258, height: 94, minHeight: 74, maxHeight: 166, idealX: 1245, fill: .56 },
-  agentic: { min: 182, max: 370, base: 248, height: 90, minHeight: 72, maxHeight: 158, idealX: 1588, fill: .54 },
+  ai: { min: 132, max: 220, base: 150, height: 72, minHeight: 58, maxHeight: 126, idealX: 280, fill: .42 },
+  deep: { min: 168, max: 314, base: 218, height: 86, minHeight: 72, maxHeight: 142, idealX: 560, fill: .54 },
+  gen: { min: 178, max: 346, base: 238, height: 90, minHeight: 74, maxHeight: 150, idealX: 900, fill: .54 },
+  agents: { min: 180, max: 364, base: 244, height: 90, minHeight: 74, maxHeight: 156, idealX: 1245, fill: .52 },
+  agentic: { min: 178, max: 350, base: 236, height: 88, minHeight: 72, maxHeight: 150, idealX: 1588, fill: .50 },
 };
 
-const CARD_SCALE_STEPS = [1, .94, .88, .82, .76, .7, .62, .54, .48];
+const CARD_SCALE_STEPS = [1, .94, .88, .82, .76, .7, .62, .54, .48, .42, .36];
 
 const MAP_WIDTH = 1940;
 const MAP_HEIGHT = 1980;
 const MIN_ZOOM = 0.1;
 const MAX_ZOOM = 1.25;
 const DEFAULT_ZOOM_MULTIPLIER = 1.5;
-const CARD_HORIZONTAL_PADDING = 42;
-const CARD_VERTICAL_PADDING = 32;
+const CARD_HORIZONTAL_PADDING = 34;
+const CARD_VERTICAL_PADDING = 28;
 const CARD_LINE_HEIGHT = 1.04;
 const CARD_FONT_SIZE = {
   ai: 21.97,
@@ -761,14 +761,14 @@ const sidebarToggleText = sidebarToggleBtn?.querySelector('.sidebar-toggle-text'
 const byId = new Map(concepts.map((concept) => [concept.id, concept]));
 const LABEL_GAP = 14;
 const CARD_GAP = 8;
-const BORDER_GAP = 30;
+const BORDER_GAP = 6;
 const PACK_STEP = 12;
 const ARROW_GAP = 10;
 const PACKING_PASSES = [
-  { boundarySlack: .55, overlapGap: CARD_GAP, step: PACK_STEP },
-  { boundarySlack: .8, overlapGap: 5, step: PACK_STEP },
-  { boundarySlack: 1.05, overlapGap: 2, step: PACK_STEP },
-  { boundarySlack: 1.25, overlapGap: 0, step: PACK_STEP * 1.5 },
+  { overlapGap: CARD_GAP, step: PACK_STEP },
+  { overlapGap: 5, step: PACK_STEP },
+  { overlapGap: 2, step: PACK_STEP },
+  { overlapGap: 0, step: PACK_STEP },
 ];
 const MIN_SIDEBAR_WIDTH = 340;
 const MAX_SIDEBAR_WIDTH = 680;
@@ -785,24 +785,25 @@ function rectsOverlap(a, b, gap = 0) {
     && a.y + a.h + gap > b.y;
 }
 
-function rectCenter(rect) {
-  return [rect.x + rect.w / 2, rect.y + rect.h / 2];
+function cardCorners(rect) {
+  return [
+    [rect.x, rect.y],
+    [rect.x + rect.w, rect.y],
+    [rect.x, rect.y + rect.h],
+    [rect.x + rect.w, rect.y + rect.h],
+  ];
 }
 
 function pointDistance(point, circle) {
   return Math.hypot(point[0] - circle.cx, point[1] - circle.cy);
 }
 
-function cardBoundarySlack(rect, amount) {
-  return Math.min(rect.w, rect.h) * amount;
+function isInsideCircle(rect, circle, margin) {
+  return cardCorners(rect).every((point) => pointDistance(point, circle) <= circle.r - margin);
 }
 
-function isMostlyInsideCircle(rect, circle, margin, slack = 0) {
-  return pointDistance(rectCenter(rect), circle) <= circle.r - margin + cardBoundarySlack(rect, slack);
-}
-
-function isMostlyOutsideCircle(rect, circle, margin, slack = 0) {
-  return pointDistance(rectCenter(rect), circle) >= circle.r + margin - cardBoundarySlack(rect, slack);
+function isOutsideCircle(rect, circle, margin) {
+  return cardCorners(rect).every((point) => pointDistance(point, circle) >= circle.r + margin);
 }
 
 function clamp(value, min, max) {
@@ -857,16 +858,11 @@ function sizeConceptForStage(concept, stage, scale = 1) {
   const profile = CARD_PROFILE[stage];
   const stageCount = STAGE_CONCEPTS[stage].length;
   const targetArea = (usableStageArea(stage) * profile.fill) / stageCount;
-  const targetWidth = Math.sqrt(targetArea * 2.4);
+  const targetWidth = Math.sqrt(targetArea * 1.55);
   const words = concept.title.split(/\s+/).filter(Boolean);
   const longestWordWidth = Math.max(...words.map((word) => measureTitleWidth(word, stage)));
-  const fullTitleWidth = measureTitleWidth(concept.title, stage);
-  const comfortableWidth = Math.min(
-    profile.max,
-    Math.max(profile.base, targetWidth, longestWordWidth + CARD_HORIZONTAL_PADDING, Math.min(fullTitleWidth + CARD_HORIZONTAL_PADDING, profile.max)),
-  );
   const minTextWidth = Math.min(profile.max, Math.max(profile.min, longestWordWidth + CARD_HORIZONTAL_PADDING));
-  const width = Math.max(minTextWidth, comfortableWidth * scale);
+  const width = Math.max(minTextWidth, Math.min(profile.max, Math.max(profile.base, targetWidth) * scale));
   const maxTextWidth = Math.max(longestWordWidth, width - CARD_HORIZONTAL_PADDING);
   const lines = wrappedLineCount(words, maxTextWidth, stage);
   const fontSize = CARD_FONT_SIZE[stage] || CARD_FONT_SIZE.gen;
@@ -881,10 +877,9 @@ function sizeConceptForStage(concept, stage, scale = 1) {
 function isPackedPlacementValid(concept, x, y, placedRects, options = {}) {
   const rect = rectFor(concept, x, y, concept.h);
   const circle = VENN_CIRCLES[concept.stage];
-  const boundarySlack = options.boundarySlack ?? .55;
   const overlapGap = options.overlapGap ?? CARD_GAP;
-  if (!isMostlyInsideCircle(rect, circle, BORDER_GAP, boundarySlack)) return false;
-  if (circle.prev && !isMostlyOutsideCircle(rect, VENN_CIRCLES[circle.prev], BORDER_GAP, boundarySlack)) return false;
+  if (!isInsideCircle(rect, circle, BORDER_GAP)) return false;
+  if (circle.prev && !isOutsideCircle(rect, VENN_CIRCLES[circle.prev], BORDER_GAP)) return false;
   if (Object.values(LABEL_BOUNDS).some((label) => rectsOverlap(rect, label, LABEL_GAP))) return false;
   if (PROGRESSION_BOUNDS.some((arrow) => rectsOverlap(rect, arrow, ARROW_GAP))) return false;
   return !placedRects.some((placed) => rectsOverlap(rect, placed, overlapGap));
