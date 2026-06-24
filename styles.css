@@ -621,8 +621,8 @@ h1 {
   translate: 0 0;
   transform: translateZ(0);
   animation:
-    float-card var(--float-duration, 8s) ease-in-out var(--float-delay, 0s) infinite alternate,
-    float-shadow calc(var(--float-duration, 8s) * 1.35) ease-in-out var(--float-delay, 0s) infinite alternate;
+    float-card var(--float-duration, 8s) cubic-bezier(.37, 0, .23, 1) var(--float-delay, 0s) infinite alternate,
+    float-shadow calc(var(--float-duration, 8s) * 1.35) cubic-bezier(.37, 0, .23, 1) var(--float-delay, 0s) infinite alternate;
   transition: transform .16s ease, box-shadow .16s ease, opacity .16s ease, border-color .16s ease;
   touch-action: none;
   user-select: none;
@@ -713,8 +713,8 @@ h1 {
     translate: calc(var(--float-x, 1px) * -1) calc(var(--float-y, 1px) * .45);
   }
 
-  48% {
-    translate: calc(var(--float-y, 1px) * .35) calc(var(--float-x, 1px) * -1);
+  50% {
+    translate: calc(var(--float-y, 1px) * .32) calc(var(--float-x, 1px) * -.82);
   }
 
   100% {

@@ -928,8 +928,9 @@ function createNodes() {
   nodeLayer.innerHTML = '';
   for (const concept of concepts) {
     const seed = Array.from(concept.id).reduce((sum, char) => sum + char.charCodeAt(0), 0);
-    const floatX = 1 + (seed % 2) * 0.5;
-    const floatY = 1 + ((seed >> 2) % 2) * 0.5;
+    const wiggleDistance = 1.2;
+    const floatX = (1 + (seed % 2) * 0.5) * wiggleDistance;
+    const floatY = (1 + ((seed >> 2) % 2) * 0.5) * wiggleDistance;
     const direction = seed % 2 === 0 ? 1 : -1;
     const duration = 6.8 + (seed % 7) * 0.42;
     const delay = -1 * ((seed % 11) * 0.31);
