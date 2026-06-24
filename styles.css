@@ -670,16 +670,17 @@ h1 {
   letter-spacing: 0;
   text-align: center;
   overflow: hidden;
-  overflow-wrap: anywhere;
+  overflow-wrap: normal;
+  word-break: normal;
+  hyphens: none;
   translate: 0 0;
   transform: translateZ(0);
   animation:
     float-card var(--float-duration, 8s) cubic-bezier(.37, 0, .23, 1) var(--float-delay, 0s) infinite alternate,
     float-shadow calc(var(--float-duration, 8s) * 1.35) cubic-bezier(.37, 0, .23, 1) var(--float-delay, 0s) infinite alternate;
   transition: transform .16s ease, box-shadow .16s ease, opacity .16s ease, border-color .16s ease;
-  touch-action: none;
+  touch-action: manipulation;
   user-select: none;
-  cursor: grab;
   pointer-events: auto;
 }
 
@@ -703,18 +704,6 @@ h1 {
   box-shadow: 0 16px 32px rgba(15, 23, 42, .18);
   border-color: var(--node-color);
   outline: none;
-}
-
-.concept-node.is-dragging {
-  z-index: 20;
-  animation: none;
-  cursor: grabbing;
-  opacity: .96;
-}
-
-.concept-node.is-blocked {
-  border-color: #ef4444;
-  box-shadow: 0 0 0 3px rgba(239, 68, 68, .18), 0 16px 32px rgba(15, 23, 42, .18);
 }
 
 .concept-node.is-dimmed {

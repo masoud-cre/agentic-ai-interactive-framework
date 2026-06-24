@@ -688,11 +688,11 @@ const STAGE_CONCEPTS = {
 };
 
 const CARD_PROFILE = {
-  ai: { min: 104, max: 194, base: 158, height: 70, minHeight: 55, idealX: 280, fill: .52 },
-  deep: { min: 124, max: 238, base: 190, height: 83, minHeight: 60, idealX: 560, fill: .58 },
-  gen: { min: 132, max: 252, base: 202, height: 88, minHeight: 62, idealX: 900, fill: .58 },
-  agents: { min: 134, max: 258, base: 206, height: 88, minHeight: 62, idealX: 1245, fill: .56 },
-  agentic: { min: 132, max: 252, base: 200, height: 83, minHeight: 60, idealX: 1588, fill: .54 },
+  ai: { min: 132, max: 260, base: 178, height: 70, minHeight: 55, maxHeight: 118, idealX: 280, fill: .52 },
+  deep: { min: 150, max: 292, base: 210, height: 83, minHeight: 60, maxHeight: 130, idealX: 560, fill: .58 },
+  gen: { min: 158, max: 316, base: 224, height: 88, minHeight: 62, maxHeight: 136, idealX: 900, fill: .58 },
+  agents: { min: 160, max: 326, base: 228, height: 88, minHeight: 62, maxHeight: 140, idealX: 1245, fill: .56 },
+  agentic: { min: 158, max: 318, base: 220, height: 83, minHeight: 60, maxHeight: 132, idealX: 1588, fill: .54 },
 };
 
 const CARD_SCALE_STEPS = [1, .94, .88, .82, .76, .7, .62, .54, .48];
@@ -702,7 +702,16 @@ const MAP_HEIGHT = 1980;
 const MIN_ZOOM = 0.1;
 const MAX_ZOOM = 1.25;
 const DEFAULT_ZOOM_MULTIPLIER = 1.5;
-const LAYOUT_STORAGE_KEY = 'agentic-ai-framework-card-layout-v1';
+const CARD_HORIZONTAL_PADDING = 26;
+const CARD_VERTICAL_PADDING = 22;
+const CARD_LINE_HEIGHT = 1.04;
+const CARD_FONT_SIZE = {
+  ai: 21.97,
+  deep: 21.97,
+  gen: 21.125,
+  agents: 21.125,
+  agentic: 19.435,
+};
 
 const state = {
   selectedId: null,
@@ -750,7 +759,6 @@ const sidebarToggleIcon = sidebarToggleBtn?.querySelector('span[aria-hidden="tru
 const sidebarToggleText = sidebarToggleBtn?.querySelector('.sidebar-toggle-text');
 
 const byId = new Map(concepts.map((concept) => [concept.id, concept]));
-const CARD_HEIGHT = 44;
 const LABEL_GAP = 14;
 const CARD_GAP = 8;
 const BORDER_GAP = 30;
@@ -758,11 +766,10 @@ const PACK_STEP = 12;
 const ARROW_GAP = 10;
 const MIN_SIDEBAR_WIDTH = 340;
 const MAX_SIDEBAR_WIDTH = 680;
-let dragState = null;
 let resizeState = null;
 
-function rectFor(concept, x = concept.x, y = concept.y, height = concept.h || CARD_HEIGHT) {
-  return { x, y, w: concept.w, h: height || concept.h || CARD_HEIGHT };
+function rectFor(concept, x = concept.x, y = concept.y, height = concept.h) {
+  return { x, y, w: concept.w, h: height || concept.h };
 }
 
 function rectsOverlap(a, b, gap = 0) {
@@ -813,17 +820,55 @@ function usableStageArea(stage) {
   return Math.max(0, ringArea - labelArea * .45 - arrowArea * .35);
 }
 
+function measureTitleWidth(text, stage) {
+  const fontSize = CARD_FONT_SIZE[stage] || CARD_FONT_SIZE.gen;
+  if (!measureTitleWidth.context) {
+    const canvas = document.createElement('canvas');
+    measureTitleWidth.context = canvas.getContext('2d');
+  }
+  const context = measureTitleWidth.context;
+  if (!context) return text.length * fontSize * .54;
+  context.font = `500 ${fontSize}px Inter, system-ui, sans-serif`;
+  return context.measureText(text).width;
+}
+
+function wrappedLineCount(words, maxTextWidth, stage) {
+  let lines = 1;
+  let currentLine = '';
+
+  words.forEach((word) => {
+    const nextLine = currentLine ? `${currentLine} ${word}` : word;
+    if (currentLine && measureTitleWidth(nextLine, stage) > maxTextWidth) {
+      lines += 1;
+      currentLine = word;
+      return;
+    }
+    currentLine = nextLine;
+  });
+
+  return lines;
+}
+
 function sizeConceptForStage(concept, stage, scale = 1) {
   const profile = CARD_PROFILE[stage];
   const stageCount = STAGE_CONCEPTS[stage].length;
   const targetArea = (usableStageArea(stage) * profile.fill) / stageCount;
   const targetWidth = Math.sqrt(targetArea * 2.4);
-  const targetHeight = targetArea / targetWidth;
-  const lengthBonus = Math.max(0, concept.title.length - 18) * 2.4;
-  const width = (Math.max(profile.base, targetWidth) + lengthBonus) * scale;
-  const height = Math.max(profile.height, targetHeight) * scale;
+  const words = concept.title.split(/\s+/).filter(Boolean);
+  const longestWordWidth = Math.max(...words.map((word) => measureTitleWidth(word, stage)));
+  const fullTitleWidth = measureTitleWidth(concept.title, stage);
+  const fittedWidth = Math.min(
+    profile.max,
+    Math.max(profile.base, targetWidth, longestWordWidth + CARD_HORIZONTAL_PADDING, Math.min(fullTitleWidth + CARD_HORIZONTAL_PADDING, profile.max)),
+  );
+  const width = fittedWidth * scale;
+  const maxTextWidth = Math.max(longestWordWidth, width - CARD_HORIZONTAL_PADDING);
+  const lines = wrappedLineCount(words, maxTextWidth, stage);
+  const fontSize = CARD_FONT_SIZE[stage] || CARD_FONT_SIZE.gen;
+  const fittedHeight = Math.max(profile.height, lines * fontSize * CARD_LINE_HEIGHT + CARD_VERTICAL_PADDING);
+  const height = fittedHeight * scale;
   concept.w = Math.round(clamp(width, profile.min, profile.max));
-  concept.h = Math.round(clamp(height, profile.minHeight, profile.height + 28));
+  concept.h = Math.round(clamp(height, profile.minHeight, profile.maxHeight));
   concept.stage = stage;
 }
 
@@ -917,78 +962,6 @@ function assignInitialLayout() {
   });
 }
 
-function isValidPlacement(concept, x, y, height = concept.h || CARD_HEIGHT) {
-  const rect = rectFor(concept, x, y, height);
-  const circle = VENN_CIRCLES[concept.stage];
-  if (!isInsideCircle(rect, circle, BORDER_GAP)) return false;
-  if (circle.prev && !isOutsideCircle(rect, VENN_CIRCLES[circle.prev], BORDER_GAP)) return false;
-
-  const hitsLabel = Object.values(LABEL_BOUNDS).some((label) => rectsOverlap(rect, label, LABEL_GAP));
-  if (hitsLabel) return false;
-  const hitsArrow = PROGRESSION_BOUNDS.some((arrow) => rectsOverlap(rect, arrow, ARROW_GAP));
-  if (hitsArrow) return false;
-
-  return concepts.every((other) => {
-    if (other.id === concept.id) return true;
-    return !rectsOverlap(rect, rectFor(other), CARD_GAP);
-  });
-}
-
-function mapPointFromEvent(event) {
-  const bounds = frameworkMap.getBoundingClientRect();
-  return {
-    x: (event.clientX - bounds.left) / state.zoom,
-    y: (event.clientY - bounds.top) / state.zoom,
-  };
-}
-
-function saveCardPositions() {
-  try {
-    const layout = Object.fromEntries(concepts.map((concept) => [concept.id, { x: concept.x, y: concept.y }]));
-    localStorage.setItem(LAYOUT_STORAGE_KEY, JSON.stringify(layout));
-  } catch {
-    // Layout persistence is a progressive enhancement.
-  }
-}
-
-function loadSavedCardPositions() {
-  try {
-    const raw = localStorage.getItem(LAYOUT_STORAGE_KEY);
-    if (!raw) return;
-    const layout = JSON.parse(raw);
-    concepts.forEach((concept) => {
-      const saved = layout[concept.id];
-      if (!saved || !Number.isFinite(saved.x) || !Number.isFinite(saved.y)) return;
-      concept.x = Math.round(saved.x);
-      concept.y = Math.round(saved.y);
-    });
-  } catch {
-    localStorage.removeItem(LAYOUT_STORAGE_KEY);
-  }
-}
-
-function clearSavedCardPositions() {
-  try {
-    localStorage.removeItem(LAYOUT_STORAGE_KEY);
-  } catch {
-    // Ignore unavailable storage.
-  }
-}
-
-function resetCardPositions() {
-  clearSavedCardPositions();
-  concepts.forEach((concept) => {
-    concept.x = concept.defaultX;
-    concept.y = concept.defaultY;
-    const node = nodeLayer.querySelector(`[data-id="${concept.id}"]`);
-    if (node) {
-      node.style.left = `${concept.x}px`;
-      node.style.top = `${concept.y}px`;
-      node.classList.remove('is-blocked', 'is-dragging');
-    }
-  });
-}
-
 function matches(concept) {
   const filterMatch = state.filter === 'all' || concept.domain === state.filter;
   const stageMatch = !state.activeStage || concept.stage === state.activeStage;
@@ -1036,76 +1009,14 @@ function createNodes() {
     button.setAttribute('role', 'listitem');
     button.setAttribute('aria-label', `${concept.title}: ${concept.summary}`);
     button.textContent = concept.title;
-    button.addEventListener('pointerdown', (event) => startCardDrag(event, concept, button));
     button.addEventListener('pointerenter', (event) => showHoverPreview(concept, event));
     button.addEventListener('pointermove', (event) => moveHoverPreview(event));
     button.addEventListener('pointerleave', hideHoverPreview);
     button.addEventListener('focus', (event) => showHoverPreview(concept, event));
     button.addEventListener('blur', hideHoverPreview);
-    button.addEventListener('click', (event) => {
-      if (button.dataset.dragged === 'true') {
-        event.preventDefault();
-        button.dataset.dragged = 'false';
-        return;
-      }
-      selectConcept(concept.id);
-    });
+    button.addEventListener('click', () => selectConcept(concept.id));
     nodeLayer.appendChild(button);
   }
-}
-
-function startCardDrag(event, concept, button) {
-  if (event.button !== 0) return;
-  event.preventDefault();
-  hideHoverPreview();
-  const point = mapPointFromEvent(event);
-  dragState = {
-    id: concept.id,
-    button,
-    offsetX: point.x - concept.x,
-    offsetY: point.y - concept.y,
-    startX: concept.x,
-    startY: concept.y,
-    moved: false,
-    height: Math.max(CARD_HEIGHT, button.offsetHeight),
-  };
-  button.dataset.dragged = 'false';
-  button.classList.add('is-dragging');
-  button.setPointerCapture(event.pointerId);
-}
-
-function moveDraggedCard(event) {
-  if (!dragState) return;
-  const concept = byId.get(dragState.id);
-  if (!concept) return;
-
-  const point = mapPointFromEvent(event);
-  const nextX = Math.round(point.x - dragState.offsetX);
-  const nextY = Math.round(point.y - dragState.offsetY);
-  const movedDistance = Math.hypot(nextX - dragState.startX, nextY - dragState.startY);
-  if (movedDistance > 3) dragState.moved = true;
-
-  if (!isValidPlacement(concept, nextX, nextY, dragState.height)) {
-    dragState.button.classList.add('is-blocked');
-    return;
-  }
-
-  dragState.button.classList.remove('is-blocked');
-  concept.x = nextX;
-  concept.y = nextY;
-  dragState.button.style.left = `${nextX}px`;
-  dragState.button.style.top = `${nextY}px`;
-
-  const selected = byId.get(state.selectedId);
-  renderRelationships(selected);
-}
-
-function endCardDrag() {
-  if (!dragState) return;
-  dragState.button.classList.remove('is-dragging', 'is-blocked');
-  dragState.button.dataset.dragged = dragState.moved ? 'true' : 'false';
-  if (dragState.moved) saveCardPositions();
-  dragState = null;
 }
 
 function relationshipMeta(source, target) {
@@ -1162,7 +1073,7 @@ function moveHoverPreview(event) {
 }
 
 function showHoverPreview(concept, event) {
-  if (!hoverPreview || dragState) return;
+  if (!hoverPreview) return;
   hoverDomain.textContent = `${stages[concept.stage].label} · ${domains[concept.domain].label}`;
   hoverTitle.textContent = concept.title;
   hoverSummary.textContent = concept.summary;
@@ -1480,7 +1391,6 @@ function refreshView() {
   state.query = '';
   state.selectedId = null;
   searchInput.value = '';
-  resetCardPositions();
   fitAndCenter();
   syncUrlState();
   render();
@@ -1554,11 +1464,8 @@ sidebarResizer.addEventListener('keydown', (event) => {
   fitAndCenter();
 });
 
-window.addEventListener('pointermove', moveDraggedCard);
 window.addEventListener('pointermove', moveSidebarResize);
-window.addEventListener('pointerup', endCardDrag);
 window.addEventListener('pointerup', endSidebarResize);
-window.addEventListener('pointercancel', endCardDrag);
 window.addEventListener('pointercancel', endSidebarResize);
 zoomInBtn.addEventListener('click', () => setZoom(state.zoom * 1.16));
 zoomOutBtn.addEventListener('click', () => setZoom(state.zoom / 1.16));
@@ -1567,7 +1474,6 @@ window.addEventListener('resize', () => {
 });
 
 assignInitialLayout();
-loadSavedCardPositions();
 createNodes();
 hydrateStateFromUrl();
 fitAndCenter();

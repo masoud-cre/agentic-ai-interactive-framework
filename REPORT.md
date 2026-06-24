@@ -30,9 +30,9 @@ The circles are horizontally aligned and nested/overlapping to show cumulative c
 
 ## Concept Cards
 
-Each card represents a concept within the framework, such as Retrieval-Augmented Generation, Tool Orchestration, Memory Systems, Governance and Safety Guardrails, Feedback Loops, or Natural Language Processing. Cards are native DOM elements, not image slices, which means they can be searched, clicked, dragged, styled, and inspected.
+Each card represents a concept within the framework, such as Retrieval-Augmented Generation, Tool Orchestration, Memory Systems, Governance and Safety Guardrails, Feedback Loops, or Natural Language Processing. Cards are native DOM elements, not image slices, which means they can be searched, clicked, styled, and inspected.
 
-Cards are positioned inside the appropriate circle or crescent. Their placement is meaningful: a card belongs to the stage whose circle contains it. The application enforces this logic during dragging so a concept cannot be moved outside its assigned circle or over the central stage labels.
+Cards are positioned inside the appropriate circle or crescent. Their placement is meaningful: a card belongs to the stage whose circle contains it, and the layout engine keeps cards away from labels, arrows, and neighboring cards.
 
 When a user selects a card, the app highlights the selected card, emphasizes directly related cards, draws relationship lines, and fades unrelated cards. Clicking outside the selected card now clears the card selection and returns the canvas to the unselected state.
 
@@ -62,7 +62,6 @@ The current interaction model includes:
 - Use guided views for Builder, Executive, Governance, and Operations paths.
 - Use search to find concepts quickly.
 - Use zoom controls to inspect or reset the map.
-- Drag cards within their valid circle boundaries; custom positions persist locally.
 - Share URLs that deep-link to a selected concept, stage, or guided view.
 - Resize or collapse the sidebar to control the amount of canvas space.
 
@@ -89,7 +88,7 @@ The application is a static web app made of three primary files:
 
 - `index.html`: document structure, SVG circle geometry, stage labels, sidebar, controls, and script/style loading.
 - `styles.css`: layout, Venn circle styling, cards, responsive behavior, sidebar design, interaction states, animation, and focus treatment.
-- `app.js`: concept data model, layout packing, click handling, drag constraints, filters, search, zoom, relationship rendering, and sidebar state.
+- `app.js`: concept data model, layout packing, click handling, filters, search, zoom, relationship rendering, and sidebar state.
 
 It is hosted on GitHub Pages and does not require a backend service. The original JPEG is retained only as source/reference material; the user-facing tool is native web code.
 
@@ -132,14 +131,12 @@ The result is more useful than a static infographic because users can interrogat
 - Typed relationship highlighting helps users distinguish dependencies, enablers, governance controls, operational links, and recovery paths.
 - Guided views make the same map useful for different audiences and workflows.
 - Hover previews and deep links make exploration faster and more shareable.
-- Dragged card positions persist locally, making the diagram feel more like a working canvas.
 - Static hosting keeps deployment simple and durable.
 
 ## Known Constraints
 
 - The layout is manually tuned around a fixed canvas size, so adding many new concepts may require layout review.
 - Relationship lines are currently simple quadratic paths, not routed around every possible card collision.
-- Saved card positions are local to the browser and are intentionally cleared by reset.
 - The framework is educational and conceptual; it is not yet connected to live documentation, model benchmarks, or vendor/product comparisons.
 
 ## Recommended Next Improvements
