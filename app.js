@@ -1022,6 +1022,12 @@ function selectConcept(id) {
   render();
 }
 
+function deselectConcept() {
+  if (!state.selectedId) return;
+  state.selectedId = null;
+  render();
+}
+
 function selectStage(stage) {
   state.activeStage = state.activeStage === stage ? null : stage;
   state.selectedId = null;
@@ -1308,10 +1314,17 @@ if (stageClearBtn) {
 
 frameworkMap.addEventListener('click', (event) => {
   const label = event.target.closest('.stage-label');
-  if (!label || !frameworkMap.contains(label)) return;
-  event.preventDefault();
-  event.stopPropagation();
-  selectStage(label.dataset.stage);
+  if (label && frameworkMap.contains(label)) {
+    event.preventDefault();
+    event.stopPropagation();
+    selectStage(label.dataset.stage);
+    return;
+  }
+
+  const card = event.target.closest('.concept-node');
+  if (card && frameworkMap.contains(card)) return;
+
+  deselectConcept();
 });
 
 sidebarToggleBtn.addEventListener('click', () => {
