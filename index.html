@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Agentic AI Interactive Framework</title>
+  <link rel="stylesheet" href="styles.css?v=20260623-front-links">
+</head>
+<body>
+  <main class="app-shell">
+    <section class="workspace" aria-label="Interactive Agentic AI framework">
+      <section class="map-shell">
+        <div id="mapViewport" class="map-viewport">
+          <div id="mapCanvas" class="map-canvas">
+          <div id="frameworkMap" class="framework-map" role="list" aria-label="Clickable AI concepts">
+            <svg class="map-geometry" viewBox="0 0 1940 1980" aria-hidden="true">
+              <defs>
+                <linearGradient id="flowGradient" x1="0" x2="1" y1="0" y2="0">
+                  <stop offset="0%" stop-color="#2563eb"/>
+                  <stop offset="28%" stop-color="#059669"/>
+                  <stop offset="52%" stop-color="#ca8a04"/>
+                  <stop offset="76%" stop-color="#dc2626"/>
+                  <stop offset="100%" stop-color="#0f766e"/>
+                </linearGradient>
+                <marker id="progressionArrow" viewBox="0 0 16 16" refX="14" refY="8" markerWidth="7.2" markerHeight="7.2" orient="auto-start-reverse">
+                  <path d="M2 2 L14 8 L2 14 Z" fill="#111827"/>
+                </marker>
+                <filter id="softShadow" x="-10%" y="-10%" width="120%" height="120%">
+                  <feDropShadow dx="0" dy="12" stdDeviation="14" flood-color="#0f172a" flood-opacity=".14"/>
+                </filter>
+              </defs>
+              <g class="circle-fills">
+                <circle class="circle-fill fill-agentic" data-stage="agentic" cx="970" cy="1040" r="940"/>
+                <circle class="circle-fill fill-agents" data-stage="agents" cx="800" cy="1040" r="770"/>
+                <circle class="circle-fill fill-gen" data-stage="gen" cx="630" cy="1040" r="600"/>
+                <circle class="circle-fill fill-deep" data-stage="deep" cx="460" cy="1040" r="430"/>
+                <circle class="circle-fill fill-ai" data-stage="ai" cx="290" cy="1040" r="260"/>
+              </g>
+              <g class="circle-system">
+                <circle class="circle-ring ring-ai" data-stage="ai" cx="290" cy="1040" r="260"/>
+                <circle class="circle-ring ring-deep" data-stage="deep" cx="460" cy="1040" r="430"/>
+                <circle class="circle-ring ring-gen" data-stage="gen" cx="630" cy="1040" r="600"/>
+                <circle class="circle-ring ring-agents" data-stage="agents" cx="800" cy="1040" r="770"/>
+                <circle class="circle-ring ring-agentic" data-stage="agentic" cx="970" cy="1040" r="940"/>
+              </g>
+              <g class="progression-arrows">
+                <path class="flow-line" d="M260 1040 L576 1040"/>
+                <path class="flow-line" d="M796 1040 L920 1040"/>
+                <path class="flow-line" d="M1100 1040 L1260 1040"/>
+                <path class="flow-line" d="M1440 1040 L1600 1040"/>
+                <path class="flow-line" d="M1820 1040 L1910 1040"/>
+              </g>
+            </svg>
+            <button class="stage-label stage-ai" type="button" data-stage="ai" aria-pressed="false">
+              <strong>AI &amp; ML</strong>
+              <span>Turn your data into decisions</span>
+            </button>
+            <button class="stage-label stage-deep" type="button" data-stage="deep" aria-pressed="false">
+              <strong>Deep Learning</strong>
+              <span>Multi-layered neural networks for complex tasks</span>
+            </button>
+            <button class="stage-label stage-gen" type="button" data-stage="gen" aria-pressed="false">
+              <strong>Gen AI</strong>
+              <span>Create new content</span>
+            </button>
+            <button class="stage-label stage-agents" type="button" data-stage="agents" aria-pressed="false">
+              <strong>AI Agents</strong>
+              <span>Autonomous tasks</span>
+            </button>
+            <button class="stage-label stage-agentic" type="button" data-stage="agentic" aria-pressed="false">
+              <strong>Agentic AI</strong>
+              <span>Automate entire processes</span>
+            </button>
+            <div id="nodeLayer" class="node-layer"></div>
+            <svg class="relationship-geometry" viewBox="0 0 1940 1980" aria-hidden="true">
+              <path id="relationshipLines" class="relationship-lines"/>
+            </svg>
+          </div>
+          </div>
+        </div>
+      </section>
+    </section>
+
+    <div id="sidebarResizer" class="sidebar-resizer" role="separator" aria-orientation="vertical" aria-label="Resize sidebar" tabindex="0"></div>
+
+    <aside class="inspector" aria-label="Concept details">
+      <div class="sidebar-top">
+        <div class="sidebar-title">
+          <p class="eyebrow">Interactive framework</p>
+          <h1>Agentic AI</h1>
+        </div>
+        <button id="sidebarToggleBtn" class="icon-button sidebar-toggle" type="button" aria-label="Collapse sidebar" title="Collapse sidebar">
+          <span aria-hidden="true">›</span>
+        </button>
+      </div>
+      <section class="controls-panel" aria-label="Map controls">
+        <label class="search">
+          <span>Search</span>
+          <input id="searchInput" type="search" autocomplete="off" placeholder="memory, RAG, planning...">
+        </label>
+        <div class="zoom-controls" aria-label="Zoom controls">
+          <button id="zoomOutBtn" class="icon-button" type="button" aria-label="Zoom out" title="Zoom out">
+            <span aria-hidden="true">-</span>
+          </button>
+          <button id="zoomInBtn" class="icon-button" type="button" aria-label="Zoom in" title="Zoom in">
+            <span aria-hidden="true">+</span>
+          </button>
+          <button id="resetBtn" class="icon-button" type="button" aria-label="Refresh view" title="Refresh view">
+            <span aria-hidden="true">↺</span>
+          </button>
+        </div>
+        <nav class="filter-bar" aria-label="Filter by domain">
+          <button class="filter is-active" type="button" data-filter="all">All</button>
+          <button class="filter" type="button" data-filter="foundation">Foundation</button>
+          <button class="filter" type="button" data-filter="creation">Creation</button>
+          <button class="filter" type="button" data-filter="action">Action</button>
+          <button class="filter" type="button" data-filter="operations">Operations</button>
+          <button class="filter" type="button" data-filter="governance">Governance</button>
+        </nav>
+      </section>
+      <div class="inspector-header">
+        <p id="detailDomain" class="detail-domain">Start here</p>
+        <h2 id="detailTitle">Explore the framework</h2>
+        <p id="detailSummary">Click any concept to see what it does, where it sits in the stack, and what it unlocks.</p>
+      </div>
+      <div class="detail-grid">
+        <section>
+          <h3>Why it matters</h3>
+          <p id="detailWhy">The map moves from classical AI foundations through deep learning, generative models, autonomous agents, and the management layer needed for reliable agentic systems.</p>
+        </section>
+        <section>
+          <h3>Examples</h3>
+          <ul id="detailExamples"></ul>
+        </section>
+        <section>
+          <h3>Related</h3>
+          <div id="relatedList" class="related-list"></div>
+        </section>
+      </div>
+      <div class="mini-index">
+        <div class="mini-index-header">
+          <h3>Concept index</h3>
+          <span id="resultCount">0</span>
+        </div>
+        <div id="conceptList" class="concept-list"></div>
+      </div>
+    </aside>
+  </main>
+
+  <script src="app.js?v=20260623-front-links"></script>
+</body>
+</html>
