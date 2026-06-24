@@ -688,11 +688,11 @@ const STAGE_CONCEPTS = {
 };
 
 const CARD_PROFILE = {
-  ai: { min: 132, max: 260, base: 178, height: 70, minHeight: 55, maxHeight: 118, idealX: 280, fill: .52 },
-  deep: { min: 150, max: 292, base: 210, height: 83, minHeight: 60, maxHeight: 130, idealX: 560, fill: .58 },
-  gen: { min: 158, max: 316, base: 224, height: 88, minHeight: 62, maxHeight: 136, idealX: 900, fill: .58 },
-  agents: { min: 160, max: 326, base: 228, height: 88, minHeight: 62, maxHeight: 140, idealX: 1245, fill: .56 },
-  agentic: { min: 158, max: 318, base: 220, height: 83, minHeight: 60, maxHeight: 132, idealX: 1588, fill: .54 },
+  ai: { min: 156, max: 320, base: 206, height: 78, minHeight: 66, maxHeight: 150, idealX: 280, fill: .52 },
+  deep: { min: 174, max: 350, base: 236, height: 90, minHeight: 72, maxHeight: 158, idealX: 560, fill: .58 },
+  gen: { min: 182, max: 370, base: 252, height: 94, minHeight: 74, maxHeight: 162, idealX: 900, fill: .58 },
+  agents: { min: 184, max: 386, base: 258, height: 94, minHeight: 74, maxHeight: 166, idealX: 1245, fill: .56 },
+  agentic: { min: 182, max: 370, base: 248, height: 90, minHeight: 72, maxHeight: 158, idealX: 1588, fill: .54 },
 };
 
 const CARD_SCALE_STEPS = [1, .94, .88, .82, .76, .7, .62, .54, .48];
@@ -702,8 +702,8 @@ const MAP_HEIGHT = 1980;
 const MIN_ZOOM = 0.1;
 const MAX_ZOOM = 1.25;
 const DEFAULT_ZOOM_MULTIPLIER = 1.5;
-const CARD_HORIZONTAL_PADDING = 26;
-const CARD_VERTICAL_PADDING = 22;
+const CARD_HORIZONTAL_PADDING = 42;
+const CARD_VERTICAL_PADDING = 32;
 const CARD_LINE_HEIGHT = 1.04;
 const CARD_FONT_SIZE = {
   ai: 21.97,
@@ -857,16 +857,18 @@ function sizeConceptForStage(concept, stage, scale = 1) {
   const words = concept.title.split(/\s+/).filter(Boolean);
   const longestWordWidth = Math.max(...words.map((word) => measureTitleWidth(word, stage)));
   const fullTitleWidth = measureTitleWidth(concept.title, stage);
-  const fittedWidth = Math.min(
+  const comfortableWidth = Math.min(
     profile.max,
     Math.max(profile.base, targetWidth, longestWordWidth + CARD_HORIZONTAL_PADDING, Math.min(fullTitleWidth + CARD_HORIZONTAL_PADDING, profile.max)),
   );
-  const width = fittedWidth * scale;
+  const minTextWidth = Math.min(profile.max, Math.max(profile.min, longestWordWidth + CARD_HORIZONTAL_PADDING));
+  const width = Math.max(minTextWidth, comfortableWidth * scale);
   const maxTextWidth = Math.max(longestWordWidth, width - CARD_HORIZONTAL_PADDING);
   const lines = wrappedLineCount(words, maxTextWidth, stage);
   const fontSize = CARD_FONT_SIZE[stage] || CARD_FONT_SIZE.gen;
-  const fittedHeight = Math.max(profile.height, lines * fontSize * CARD_LINE_HEIGHT + CARD_VERTICAL_PADDING);
-  const height = fittedHeight * scale;
+  const minTextHeight = lines * fontSize * CARD_LINE_HEIGHT + CARD_VERTICAL_PADDING;
+  const comfortableHeight = Math.max(profile.height, minTextHeight);
+  const height = Math.max(minTextHeight, comfortableHeight * scale);
   concept.w = Math.round(clamp(width, profile.min, profile.max));
   concept.h = Math.round(clamp(height, profile.minHeight, profile.maxHeight));
   concept.stage = stage;
