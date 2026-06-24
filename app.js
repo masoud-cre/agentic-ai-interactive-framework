@@ -699,6 +699,9 @@ const sidebarResizer = document.getElementById('sidebarResizer');
 const filters = Array.from(document.querySelectorAll('.filter'));
 const stageButtons = Array.from(document.querySelectorAll('.stage-label'));
 const stageVisuals = Array.from(document.querySelectorAll('.circle-fill, .circle-ring, .stage-label'));
+const stageStatus = document.getElementById('stageStatus');
+const stageStatusText = document.getElementById('stageStatusText');
+const stageClearBtn = document.getElementById('stageClearBtn');
 
 const byId = new Map(concepts.map((concept) => [concept.id, concept]));
 const CARD_HEIGHT = 44;
@@ -1122,8 +1125,11 @@ function renderNodes(visible, selected) {
   document.querySelectorAll('.concept-node').forEach((node) => {
     const id = node.dataset.id;
     const concept = byId.get(id);
-    node.classList.toggle('is-selected', Boolean(selected && id === selected.id));
-    node.classList.toggle('is-related', relatedIds.has(id));
+    const isSelected = Boolean(selected && id === selected.id);
+    const isRelated = relatedIds.has(id);
+    node.classList.toggle('is-selected', isSelected);
+    node.classList.toggle('is-related', isRelated);
+    node.classList.toggle('is-context-muted', Boolean(selected && !isSelected && !isRelated));
     node.classList.toggle('is-dimmed', !visibleIds.has(id));
     node.classList.toggle('is-stage-muted', Boolean(state.activeStage && concept?.stage !== state.activeStage));
   });
@@ -1145,6 +1151,12 @@ function renderStageFocus() {
     const isActive = button.dataset.stage === activeStage;
     button.setAttribute('aria-pressed', String(isActive));
   });
+
+  if (!stageStatus || !stageStatusText) return;
+  stageStatus.hidden = !activeStage;
+  if (activeStage) {
+    stageStatusText.textContent = `Viewing ${stages[activeStage].label}: ${STAGE_CONCEPTS[activeStage].length} concepts`;
+  }
 }
 
 function renderSidebar() {
@@ -1157,6 +1169,7 @@ function renderSidebar() {
 function render() {
   const selected = byId.get(state.selectedId) || null;
   const visible = concepts.filter(matches);
+  frameworkMap.classList.toggle('has-card-focus', Boolean(selected));
   renderFilters();
   renderStageFocus();
   renderSidebar();
@@ -1281,6 +1294,17 @@ searchInput.addEventListener('input', (event) => {
 resetBtn.addEventListener('click', () => {
   refreshView();
 });
+
+if (stageClearBtn) {
+  stageClearBtn.addEventListener('click', () => {
+    state.activeStage = null;
+    state.selectedId = null;
+    state.filter = 'all';
+    state.query = '';
+    searchInput.value = '';
+    render();
+  });
+}
 
 frameworkMap.addEventListener('click', (event) => {
   const label = event.target.closest('.stage-label');

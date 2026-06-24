@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Agentic AI Interactive Framework</title>
-  <link rel="stylesheet" href="styles.css?v=20260623-front-links">
+  <link rel="stylesheet" href="styles.css?v=20260624-polish">
 </head>
 <body>
   <main class="app-shell">
@@ -105,7 +105,7 @@
           <button id="zoomInBtn" class="icon-button" type="button" aria-label="Zoom in" title="Zoom in">
             <span aria-hidden="true">+</span>
           </button>
-          <button id="resetBtn" class="icon-button" type="button" aria-label="Refresh view" title="Refresh view">
+          <button id="resetBtn" class="icon-button" type="button" aria-label="Reset view and filters" title="Reset view and filters">
             <span aria-hidden="true">↺</span>
           </button>
         </div>
@@ -117,6 +117,10 @@
           <button class="filter" type="button" data-filter="operations">Operations</button>
           <button class="filter" type="button" data-filter="governance">Governance</button>
         </nav>
+        <div id="stageStatus" class="stage-status" hidden>
+          <span id="stageStatusText"></span>
+          <button id="stageClearBtn" class="stage-clear" type="button">Show all</button>
+        </div>
       </section>
       <div class="inspector-header">
         <p id="detailDomain" class="detail-domain">Start here</p>
@@ -147,6 +151,6 @@
     </aside>
   </main>
 
-  <script src="app.js?v=20260623-front-links"></script>
+  <script src="app.js?v=20260624-polish"></script>
 </body>
 </html>
