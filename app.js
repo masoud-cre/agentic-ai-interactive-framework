@@ -617,6 +617,43 @@ const stages = {
   agentic: { label: 'Agentic AI' },
 };
 
+const relationshipTypes = {
+  enables: { label: 'enables', color: '#2563eb' },
+  depends: { label: 'depends on', color: '#64748b' },
+  governs: { label: 'governs', color: '#7c3aed' },
+  operates: { label: 'operates', color: '#0f766e' },
+  recovers: { label: 'recovers', color: '#dc2626' },
+  relates: { label: 'relates to', color: '#111827' },
+};
+
+const guidedViews = {
+  all: {
+    label: 'All paths',
+    summary: 'The full framework is visible: explore freely, search, or filter by domain.',
+    concepts: [],
+  },
+  builder: {
+    label: 'Builder path',
+    summary: 'A build-oriented route from model foundations to retrieval, tools, planning, execution, and observability.',
+    concepts: ['llms', 'prompt-engineering', 'rag', 'function-calling', 'tool-orchestration', 'planning', 'task-scheduling', 'autonomous-execution', 'validation', 'observability'],
+  },
+  executive: {
+    label: 'Executive path',
+    summary: 'A leadership view of business value, autonomy, process automation, risk, cost, and governance.',
+    concepts: ['reasoning', 'llms', 'personalization', 'rag', 'autonomy', 'resource-management', 'memory-systems', 'guardrails', 'risk-management', 'human-oversight'],
+  },
+  governance: {
+    label: 'Governance path',
+    summary: 'A control-focused route for safety, validation, oversight, risk, rollback, and recovery.',
+    concepts: ['hallucination', 'validation', 'guardrails', 'risk-management', 'human-oversight', 'rollback', 'self-reflection', 'failure-recovery', 'observability', 'feedback-loops'],
+  },
+  operations: {
+    label: 'Operations path',
+    summary: 'A production route for state, memory, context, resource management, runtime frameworks, tracing, and handoffs.',
+    concepts: ['state-persistence', 'memory-systems', 'context-management', 'resource-management', 'frameworks', 'observability', 'feedback-loops', 'handoff', 'contracts', 'failure-recovery'],
+  },
+};
+
 const VENN_CIRCLES = {
   ai: { cx: 290, cy: 1040, r: 260, prev: null },
   deep: { cx: 460, cy: 1040, r: 430, prev: 'ai' },
@@ -666,11 +703,13 @@ const MAP_HEIGHT = 1980;
 const MIN_ZOOM = 0.1;
 const MAX_ZOOM = 1.25;
 const DEFAULT_ZOOM_MULTIPLIER = 1.5;
+const LAYOUT_STORAGE_KEY = 'agentic-ai-framework-card-layout-v1';
 
 const state = {
   selectedId: null,
   filter: 'all',
   activeStage: null,
+  guide: 'all',
   sidebarCollapsed: false,
   sidebarWidth: 448,
   query: '',
@@ -691,12 +730,18 @@ const detailSummary = document.getElementById('detailSummary');
 const detailWhy = document.getElementById('detailWhy');
 const detailExamples = document.getElementById('detailExamples');
 const relatedList = document.getElementById('relatedList');
+const relationshipLayer = document.getElementById('relationshipLayer');
+const hoverPreview = document.getElementById('hoverPreview');
+const hoverDomain = document.getElementById('hoverDomain');
+const hoverTitle = document.getElementById('hoverTitle');
+const hoverSummary = document.getElementById('hoverSummary');
 const resetBtn = document.getElementById('resetBtn');
 const zoomInBtn = document.getElementById('zoomInBtn');
 const zoomOutBtn = document.getElementById('zoomOutBtn');
 const sidebarToggleBtn = document.getElementById('sidebarToggleBtn');
 const sidebarResizer = document.getElementById('sidebarResizer');
 const filters = Array.from(document.querySelectorAll('.filter'));
+const guideButtons = Array.from(document.querySelectorAll('.guide'));
 const stageButtons = Array.from(document.querySelectorAll('.stage-label'));
 const stageVisuals = Array.from(document.querySelectorAll('.circle-fill, .circle-ring, .stage-label'));
 const stageStatus = document.getElementById('stageStatus');
@@ -896,7 +941,41 @@ function mapPointFromEvent(event) {
   };
 }
 
+function saveCardPositions() {
+  try {
+    const layout = Object.fromEntries(concepts.map((concept) => [concept.id, { x: concept.x, y: concept.y }]));
+    localStorage.setItem(LAYOUT_STORAGE_KEY, JSON.stringify(layout));
+  } catch {
+    // Layout persistence is a progressive enhancement.
+  }
+}
+
+function loadSavedCardPositions() {
+  try {
+    const raw = localStorage.getItem(LAYOUT_STORAGE_KEY);
+    if (!raw) return;
+    const layout = JSON.parse(raw);
+    concepts.forEach((concept) => {
+      const saved = layout[concept.id];
+      if (!saved || !Number.isFinite(saved.x) || !Number.isFinite(saved.y)) return;
+      concept.x = Math.round(saved.x);
+      concept.y = Math.round(saved.y);
+    });
+  } catch {
+    localStorage.removeItem(LAYOUT_STORAGE_KEY);
+  }
+}
+
+function clearSavedCardPositions() {
+  try {
+    localStorage.removeItem(LAYOUT_STORAGE_KEY);
+  } catch {
+    // Ignore unavailable storage.
+  }
+}
+
 function resetCardPositions() {
+  clearSavedCardPositions();
   concepts.forEach((concept) => {
     concept.x = concept.defaultX;
     concept.y = concept.defaultY;
@@ -912,8 +991,10 @@ function resetCardPositions() {
 function matches(concept) {
   const filterMatch = state.filter === 'all' || concept.domain === state.filter;
   const stageMatch = !state.activeStage || concept.stage === state.activeStage;
+  const guideConcepts = guidedViews[state.guide]?.concepts || [];
+  const guideMatch = state.guide === 'all' || guideConcepts.includes(concept.id);
   const query = state.query.trim().toLowerCase();
-  if (!query) return filterMatch && stageMatch;
+  if (!query) return filterMatch && stageMatch && guideMatch;
   const haystack = [
     concept.title,
     concept.summary,
@@ -921,14 +1002,14 @@ function matches(concept) {
     concept.examples.join(' '),
     domains[concept.domain].label,
   ].join(' ').toLowerCase();
-  return filterMatch && stageMatch && haystack.includes(query);
+  return filterMatch && stageMatch && guideMatch && haystack.includes(query);
 }
 
 function createNodes() {
   nodeLayer.innerHTML = '';
   for (const concept of concepts) {
     const seed = Array.from(concept.id).reduce((sum, char) => sum + char.charCodeAt(0), 0);
-    const wiggleDistance = 1.56;
+    const wiggleDistance = 2.03;
     const floatX = (1 + (seed % 2) * 0.5) * wiggleDistance;
     const floatY = (1 + ((seed >> 2) % 2) * 0.5) * wiggleDistance;
     const direction = seed % 2 === 0 ? 1 : -1;
@@ -945,6 +1026,8 @@ function createNodes() {
     button.style.width = `${concept.w}px`;
     button.style.height = `${concept.h}px`;
     button.style.setProperty('--node-color', domains[concept.domain].color);
+    button.dataset.floatX = String(floatX * direction);
+    button.dataset.floatY = String(floatY);
     button.style.setProperty('--float-x', `${floatX * direction}px`);
     button.style.setProperty('--float-y', `${floatY}px`);
     button.style.setProperty('--float-duration', `${duration}s`);
@@ -953,6 +1036,11 @@ function createNodes() {
     button.setAttribute('aria-label', `${concept.title}: ${concept.summary}`);
     button.textContent = concept.title;
     button.addEventListener('pointerdown', (event) => startCardDrag(event, concept, button));
+    button.addEventListener('pointerenter', (event) => showHoverPreview(concept, event));
+    button.addEventListener('pointermove', (event) => moveHoverPreview(event));
+    button.addEventListener('pointerleave', hideHoverPreview);
+    button.addEventListener('focus', (event) => showHoverPreview(concept, event));
+    button.addEventListener('blur', hideHoverPreview);
     button.addEventListener('click', (event) => {
       if (button.dataset.dragged === 'true') {
         event.preventDefault();
@@ -968,6 +1056,7 @@ function createNodes() {
 function startCardDrag(event, concept, button) {
   if (event.button !== 0) return;
   event.preventDefault();
+  hideHoverPreview();
   const point = mapPointFromEvent(event);
   dragState = {
     id: concept.id,
@@ -1014,40 +1103,125 @@ function endCardDrag() {
   if (!dragState) return;
   dragState.button.classList.remove('is-dragging', 'is-blocked');
   dragState.button.dataset.dragged = dragState.moved ? 'true' : 'false';
+  if (dragState.moved) saveCardPositions();
   dragState = null;
+}
+
+function relationshipMeta(source, target) {
+  if (!source || !target) return { type: 'relates', ...relationshipTypes.relates };
+  if (target.id.includes('recovery') || target.id === 'rollback' || source.id.includes('recovery')) {
+    return { type: 'recovers', ...relationshipTypes.recovers };
+  }
+  if (target.domain === 'governance' || source.domain === 'governance') {
+    return { type: 'governs', ...relationshipTypes.governs };
+  }
+  if (target.domain === 'operations' || source.domain === 'operations') {
+    return { type: 'operates', ...relationshipTypes.operates };
+  }
+  const sourceStage = STAGE_ORDER.indexOf(source.stage);
+  const targetStage = STAGE_ORDER.indexOf(target.stage);
+  if (targetStage > sourceStage) return { type: 'enables', ...relationshipTypes.enables };
+  if (targetStage < sourceStage) return { type: 'depends', ...relationshipTypes.depends };
+  return { type: 'relates', ...relationshipTypes.relates };
+}
+
+function syncUrlState() {
+  const url = new URL(window.location.href);
+  url.searchParams.delete('concept');
+  url.searchParams.delete('stage');
+  url.searchParams.delete('view');
+  if (state.selectedId) url.searchParams.set('concept', state.selectedId);
+  else if (state.activeStage) url.searchParams.set('stage', state.activeStage);
+  if (state.guide !== 'all') url.searchParams.set('view', state.guide);
+  window.history.replaceState({}, '', url);
+}
+
+function hydrateStateFromUrl() {
+  const params = new URLSearchParams(window.location.search);
+  const view = params.get('view');
+  const stage = params.get('stage');
+  const concept = params.get('concept');
+  if (view && guidedViews[view]) state.guide = view;
+  if (stage && stages[stage]) state.activeStage = stage;
+  if (concept && byId.has(concept)) {
+    state.selectedId = concept;
+    state.activeStage = null;
+  }
+}
+
+function moveHoverPreview(event) {
+  if (!hoverPreview || hoverPreview.hidden) return;
+  const gap = 16;
+  const width = hoverPreview.offsetWidth || 260;
+  const height = hoverPreview.offsetHeight || 120;
+  const left = clamp(event.clientX + gap, 12, window.innerWidth - width - 12);
+  const top = clamp(event.clientY + gap, 12, window.innerHeight - height - 12);
+  hoverPreview.style.left = `${left}px`;
+  hoverPreview.style.top = `${top}px`;
+}
+
+function showHoverPreview(concept, event) {
+  if (!hoverPreview || dragState) return;
+  hoverDomain.textContent = `${stages[concept.stage].label} · ${domains[concept.domain].label}`;
+  hoverTitle.textContent = concept.title;
+  hoverSummary.textContent = concept.summary;
+  hoverPreview.hidden = false;
+  moveHoverPreview(event);
+}
+
+function hideHoverPreview() {
+  if (hoverPreview) hoverPreview.hidden = true;
 }
 
 function selectConcept(id) {
   if (!byId.has(id)) return;
   state.selectedId = state.selectedId === id ? null : id;
+  if (state.selectedId) state.activeStage = null;
+  syncUrlState();
   render();
 }
 
 function deselectConcept() {
   if (!state.selectedId) return;
   state.selectedId = null;
+  syncUrlState();
   render();
 }
 
 function selectStage(stage) {
   state.activeStage = state.activeStage === stage ? null : stage;
   state.selectedId = null;
+  state.guide = 'all';
   state.filter = 'all';
   state.query = '';
   searchInput.value = '';
+  syncUrlState();
+  render();
+}
+
+function selectGuide(guide) {
+  if (!guidedViews[guide]) return;
+  state.guide = state.guide === guide ? 'all' : guide;
+  state.activeStage = null;
+  state.selectedId = null;
+  state.filter = 'all';
+  state.query = '';
+  searchInput.value = '';
+  syncUrlState();
   render();
 }
 
 function renderDetail(selected) {
   if (!selected) {
-    detailDomain.textContent = state.activeStage ? stages[state.activeStage].label : 'Start here';
-    detailTitle.textContent = state.activeStage ? stages[state.activeStage].label : 'Explore the framework';
+    const activeGuide = guidedViews[state.guide];
+    detailDomain.textContent = state.activeStage ? stages[state.activeStage].label : (state.guide !== 'all' ? 'Guided view' : 'Start here');
+    detailTitle.textContent = state.activeStage ? stages[state.activeStage].label : (state.guide !== 'all' ? activeGuide.label : 'Explore the framework');
     detailSummary.textContent = state.activeStage
       ? 'Click a card inside this circle to see details and related concepts.'
-      : 'Click any concept to see what it does, where it sits in the stack, and what it unlocks.';
+      : (state.guide !== 'all' ? activeGuide.summary : 'Click any concept to see what it does, where it sits in the stack, and what it unlocks.');
     detailWhy.textContent = state.activeStage
       ? 'The focused view keeps the active circle readable while muting the surrounding stages.'
-      : 'The map moves from classical AI foundations through deep learning, generative models, autonomous agents, and the management layer needed for reliable agentic systems.';
+      : (state.guide !== 'all' ? 'Guided views keep the full diagram structure but dim concepts outside the selected route.' : 'The map moves from classical AI foundations through deep learning, generative models, autonomous agents, and the management layer needed for reliable agentic systems.');
     detailExamples.innerHTML = '';
     relatedList.innerHTML = '';
     return;
@@ -1070,10 +1244,16 @@ function renderDetail(selected) {
     .map((id) => byId.get(id))
     .filter(Boolean)
     .forEach((concept) => {
+      const relation = relationshipMeta(selected, concept);
       const chip = document.createElement('button');
+      const label = document.createElement('span');
+      const type = document.createElement('em');
       chip.type = 'button';
       chip.className = 'related-chip';
-      chip.textContent = concept.title;
+      chip.style.setProperty('--relation-color', relation.color);
+      label.textContent = concept.title;
+      type.textContent = relation.label;
+      chip.append(label, type);
       chip.addEventListener('click', () => selectConcept(concept.id));
       relatedList.appendChild(chip);
     });
@@ -1099,23 +1279,26 @@ function renderList(visible) {
 }
 
 function renderRelationships(selected) {
-  const path = document.getElementById('relationshipLines');
-  if (!selected) {
-    path.setAttribute('d', '');
-    return;
-  }
+  if (!relationshipLayer) return;
+  relationshipLayer.innerHTML = '';
+  if (!selected) return;
+
   const selectedCenter = centerOf(selected);
-  const d = selected.related
+  selected.related
     .map((id) => byId.get(id))
     .filter(Boolean)
-    .map((related) => {
+    .forEach((related) => {
       const relatedCenter = centerOf(related);
       const mx = (selectedCenter.x + relatedCenter.x) / 2;
       const my = Math.min(selectedCenter.y, relatedCenter.y) - 48;
-      return `M ${selectedCenter.x} ${selectedCenter.y} Q ${mx} ${my} ${relatedCenter.x} ${relatedCenter.y}`;
-    })
-    .join(' ');
-  path.setAttribute('d', d);
+      const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      const relation = relationshipMeta(selected, related);
+      path.setAttribute('class', 'relationship-link');
+      path.setAttribute('data-type', relation.type);
+      path.setAttribute('stroke', relation.color);
+      path.setAttribute('d', `M ${selectedCenter.x} ${selectedCenter.y} Q ${mx} ${my} ${relatedCenter.x} ${relatedCenter.y}`);
+      relationshipLayer.appendChild(path);
+    });
 }
 
 function centerOf(concept) {
@@ -1128,6 +1311,7 @@ function centerOf(concept) {
 function renderNodes(visible, selected) {
   const visibleIds = new Set(visible.map((concept) => concept.id));
   const relatedIds = new Set(selected?.related || []);
+  const guideConcepts = new Set(guidedViews[state.guide]?.concepts || []);
 
   document.querySelectorAll('.concept-node').forEach((node) => {
     const id = node.dataset.id;
@@ -1137,6 +1321,7 @@ function renderNodes(visible, selected) {
     node.classList.toggle('is-selected', isSelected);
     node.classList.toggle('is-related', isRelated);
     node.classList.toggle('is-context-muted', Boolean(selected && !isSelected && !isRelated));
+    node.classList.toggle('is-guide-muted', Boolean(state.guide !== 'all' && !guideConcepts.has(id)));
     node.classList.toggle('is-dimmed', !visibleIds.has(id));
     node.classList.toggle('is-stage-muted', Boolean(state.activeStage && concept?.stage !== state.activeStage));
   });
@@ -1145,6 +1330,9 @@ function renderNodes(visible, selected) {
 function renderFilters() {
   filters.forEach((filter) => {
     filter.classList.toggle('is-active', filter.dataset.filter === state.filter);
+  });
+  guideButtons.forEach((guide) => {
+    guide.classList.toggle('is-active', guide.dataset.guide === state.guide);
   });
 }
 
@@ -1177,6 +1365,7 @@ function render() {
   const selected = byId.get(state.selectedId) || null;
   const visible = concepts.filter(matches);
   frameworkMap.classList.toggle('has-card-focus', Boolean(selected));
+  frameworkMap.classList.toggle('has-guide-focus', state.guide !== 'all');
   renderFilters();
   renderStageFocus();
   renderSidebar();
@@ -1223,6 +1412,13 @@ function applyZoom() {
   frameworkMap.style.transform = `scale(${zoom})`;
   mapCanvas.style.width = `${MAP_WIDTH * zoom}px`;
   mapCanvas.style.height = `${MAP_HEIGHT * zoom}px`;
+  const wiggleCompensation = 1 / Math.max(zoom, .28);
+  document.querySelectorAll('.concept-node').forEach((node) => {
+    const baseX = Number(node.dataset.floatX || 0);
+    const baseY = Number(node.dataset.floatY || 0);
+    node.style.setProperty('--float-x', `${baseX * wiggleCompensation}px`);
+    node.style.setProperty('--float-y', `${baseY * wiggleCompensation}px`);
+  });
   zoomOutBtn.disabled = zoom <= MIN_ZOOM + 0.01;
   zoomInBtn.disabled = zoom >= MAX_ZOOM - 0.01;
 }
@@ -1276,11 +1472,13 @@ function setZoom(nextZoom) {
 function refreshView() {
   state.filter = 'all';
   state.activeStage = null;
+  state.guide = 'all';
   state.query = '';
   state.selectedId = null;
   searchInput.value = '';
   resetCardPositions();
   fitAndCenter();
+  syncUrlState();
   render();
 }
 
@@ -1288,9 +1486,15 @@ filters.forEach((filter) => {
   filter.addEventListener('click', () => {
     state.filter = filter.dataset.filter;
     state.activeStage = null;
+    state.guide = 'all';
     state.selectedId = null;
+    syncUrlState();
     render();
   });
+});
+
+guideButtons.forEach((guide) => {
+  guide.addEventListener('click', () => selectGuide(guide.dataset.guide));
 });
 
 searchInput.addEventListener('input', (event) => {
@@ -1309,6 +1513,7 @@ if (stageClearBtn) {
     state.filter = 'all';
     state.query = '';
     searchInput.value = '';
+    syncUrlState();
     render();
   });
 }
@@ -1358,5 +1563,8 @@ window.addEventListener('resize', () => {
 });
 
 assignInitialLayout();
+loadSavedCardPositions();
 createNodes();
-refreshView();
+hydrateStateFromUrl();
+fitAndCenter();
+render();

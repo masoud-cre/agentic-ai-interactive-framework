@@ -54,13 +54,16 @@ The sidebar is collapsible and resizable on desktop, preserving canvas space whi
 The current interaction model includes:
 
 - Click a concept card to select it and reveal details.
-- Click outside a selected card to deselect it.
+- Click the selected card again, or click outside it, to deselect it.
+- Hover a card to preview its title, stage, domain, and summary.
 - Click a circle label to focus that stage and fade the others.
 - Click the active label again, or use Show all, to return to the full framework.
 - Use domain filters to focus on a functional category across stages.
+- Use guided views for Builder, Executive, Governance, and Operations paths.
 - Use search to find concepts quickly.
 - Use zoom controls to inspect or reset the map.
-- Drag cards within their valid circle boundaries.
+- Drag cards within their valid circle boundaries; custom positions persist locally.
+- Share URLs that deep-link to a selected concept, stage, or guided view.
 - Resize or collapse the sidebar to control the amount of canvas space.
 
 ## Information Architecture
@@ -126,26 +129,29 @@ The result is more useful than a static infographic because users can interrogat
 - Strong concept-level exploration through the inspector.
 - Search and filters support fast lookup.
 - Clickable stage labels provide a second exploration mode.
-- Relationship highlighting helps users move from isolated terms to system-level understanding.
+- Typed relationship highlighting helps users distinguish dependencies, enablers, governance controls, operational links, and recovery paths.
+- Guided views make the same map useful for different audiences and workflows.
+- Hover previews and deep links make exploration faster and more shareable.
+- Dragged card positions persist locally, making the diagram feel more like a working canvas.
 - Static hosting keeps deployment simple and durable.
 
 ## Known Constraints
 
 - The layout is manually tuned around a fixed canvas size, so adding many new concepts may require layout review.
 - Relationship lines are currently simple quadratic paths, not routed around every possible card collision.
-- Card dragging is local to the browser session and does not persist after reset or reload.
+- Saved card positions are local to the browser and are intentionally cleared by reset.
 - The framework is educational and conceptual; it is not yet connected to live documentation, model benchmarks, or vendor/product comparisons.
 
 ## Recommended Next Improvements
 
 The most meaningful next steps would be:
 
-1. Add persistent saved layouts so edited card positions can be preserved.
-2. Add shareable deep links for selected stages or concepts.
-3. Add hover previews for concepts without requiring full selection.
-4. Add a glossary/export mode for turning the framework into a report or slide appendix.
-5. Add curated learning paths, such as Builder, Executive, Governance, and GTM views.
-6. Add richer relationship types, distinguishing dependencies, examples, risks, and operational controls.
+1. Add an export mode for turning the current view into a slide, PDF, or report appendix.
+2. Add a lightweight edit mode for changing concept copy directly in the browser.
+3. Add richer relationship authoring so relationship type is stored explicitly rather than inferred.
+4. Add optional source links for concepts that point to docs, papers, or internal enablement material.
+5. Add analytics for which concepts, paths, and filters users explore most.
+6. Add a presentation mode with larger labels and simplified stage-by-stage reveals.
 
 ## Summary
 

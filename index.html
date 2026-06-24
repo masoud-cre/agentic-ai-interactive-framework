@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Agentic AI Interactive Framework</title>
-  <link rel="stylesheet" href="styles.css?v=20260624-wiggle-toggle">
+  <link rel="stylesheet" href="styles.css?v=20260624-feature-pass">
 </head>
 <body>
   <main class="app-shell">
@@ -73,7 +73,7 @@
             </button>
             <div id="nodeLayer" class="node-layer"></div>
             <svg class="relationship-geometry" viewBox="0 0 1940 1980" aria-hidden="true">
-              <path id="relationshipLines" class="relationship-lines"/>
+              <g id="relationshipLayer"></g>
             </svg>
           </div>
           </div>
@@ -117,6 +117,13 @@
           <button class="filter" type="button" data-filter="operations">Operations</button>
           <button class="filter" type="button" data-filter="governance">Governance</button>
         </nav>
+        <nav class="guide-bar" aria-label="Guided views">
+          <button class="guide is-active" type="button" data-guide="all">All paths</button>
+          <button class="guide" type="button" data-guide="builder">Builder</button>
+          <button class="guide" type="button" data-guide="executive">Executive</button>
+          <button class="guide" type="button" data-guide="governance">Governance</button>
+          <button class="guide" type="button" data-guide="operations">Ops</button>
+        </nav>
         <div id="stageStatus" class="stage-status" hidden>
           <span id="stageStatusText"></span>
           <button id="stageClearBtn" class="stage-clear" type="button">Show all</button>
@@ -151,6 +158,12 @@
     </aside>
   </main>
 
-  <script src="app.js?v=20260624-wiggle-toggle"></script>
+  <div id="hoverPreview" class="hover-preview" hidden>
+    <p id="hoverDomain"></p>
+    <strong id="hoverTitle"></strong>
+    <span id="hoverSummary"></span>
+  </div>
+
+  <script src="app.js?v=20260624-feature-pass"></script>
 </body>
 </html>
