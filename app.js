@@ -675,7 +675,6 @@ const PROGRESSION_BOUNDS = [
   { x: 786, y: 998, w: 144, h: 84 },
   { x: 1090, y: 998, w: 180, h: 84 },
   { x: 1430, y: 998, w: 180, h: 84 },
-  { x: 1810, y: 998, w: 110, h: 84 },
 ];
 
 const STAGE_ORDER = ['ai', 'deep', 'gen', 'agents', 'agentic'];
@@ -689,11 +688,11 @@ const STAGE_CONCEPTS = {
 };
 
 const CARD_PROFILE = {
-  ai: { min: 104, max: 194, base: 158, height: 54, minHeight: 42, idealX: 280, fill: .52 },
-  deep: { min: 124, max: 238, base: 190, height: 64, minHeight: 46, idealX: 560, fill: .58 },
-  gen: { min: 132, max: 252, base: 202, height: 68, minHeight: 48, idealX: 900, fill: .58 },
-  agents: { min: 134, max: 258, base: 206, height: 68, minHeight: 48, idealX: 1245, fill: .56 },
-  agentic: { min: 132, max: 252, base: 200, height: 64, minHeight: 46, idealX: 1588, fill: .54 },
+  ai: { min: 104, max: 194, base: 158, height: 70, minHeight: 55, idealX: 280, fill: .52 },
+  deep: { min: 124, max: 238, base: 190, height: 83, minHeight: 60, idealX: 560, fill: .58 },
+  gen: { min: 132, max: 252, base: 202, height: 88, minHeight: 62, idealX: 900, fill: .58 },
+  agents: { min: 134, max: 258, base: 206, height: 88, minHeight: 62, idealX: 1245, fill: .56 },
+  agentic: { min: 132, max: 252, base: 200, height: 83, minHeight: 60, idealX: 1588, fill: .54 },
 };
 
 const CARD_SCALE_STEPS = [1, .94, .88, .82, .76, .7, .62, .54, .48];
@@ -747,6 +746,8 @@ const stageVisuals = Array.from(document.querySelectorAll('.circle-fill, .circle
 const stageStatus = document.getElementById('stageStatus');
 const stageStatusText = document.getElementById('stageStatusText');
 const stageClearBtn = document.getElementById('stageClearBtn');
+const sidebarToggleIcon = sidebarToggleBtn?.querySelector('span[aria-hidden="true"]');
+const sidebarToggleText = sidebarToggleBtn?.querySelector('.sidebar-toggle-text');
 
 const byId = new Map(concepts.map((concept) => [concept.id, concept]));
 const CARD_HEIGHT = 44;
@@ -1009,7 +1010,7 @@ function createNodes() {
   nodeLayer.innerHTML = '';
   for (const concept of concepts) {
     const seed = Array.from(concept.id).reduce((sum, char) => sum + char.charCodeAt(0), 0);
-    const wiggleDistance = 2.03;
+    const wiggleDistance = 2.64;
     const floatX = (1 + (seed % 2) * 0.5) * wiggleDistance;
     const floatY = (1 + ((seed >> 2) % 2) * 0.5) * wiggleDistance;
     const direction = seed % 2 === 0 ? 1 : -1;
@@ -1357,8 +1358,11 @@ function renderStageFocus() {
 function renderSidebar() {
   appShell.style.setProperty('--sidebar-width', `${state.sidebarWidth}px`);
   appShell.classList.toggle('is-sidebar-collapsed', state.sidebarCollapsed);
-  sidebarToggleBtn.setAttribute('aria-label', state.sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar');
-  sidebarToggleBtn.setAttribute('title', state.sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar');
+  const label = state.sidebarCollapsed ? 'Extend sidebar' : 'Collapse sidebar';
+  sidebarToggleBtn.setAttribute('aria-label', label);
+  sidebarToggleBtn.setAttribute('title', label);
+  if (sidebarToggleIcon) sidebarToggleIcon.textContent = state.sidebarCollapsed ? '‹' : '›';
+  if (sidebarToggleText) sidebarToggleText.textContent = state.sidebarCollapsed ? 'Extend' : 'Collapse';
 }
 
 function render() {
