@@ -92,6 +92,8 @@ The application is a static web app made of three primary files:
 
 It is hosted on GitHub Pages and does not require a backend service. The original JPEG is retained only as source/reference material; the user-facing tool is native web code.
 
+The layout engine now uses progressive packing passes for larger card labels and falls back to a fresh deterministic stage layout if a pass cannot place every card. This prevents any stage from reusing stale source coordinates, which keeps oversized cards from collapsing into a pile when text sizing changes.
+
 ## Data Model
 
 Each concept is represented as a structured JavaScript object with fields for:

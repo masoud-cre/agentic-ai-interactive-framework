@@ -764,6 +764,12 @@ const CARD_GAP = 8;
 const BORDER_GAP = 30;
 const PACK_STEP = 12;
 const ARROW_GAP = 10;
+const PACKING_PASSES = [
+  { boundarySlack: .55, overlapGap: CARD_GAP, step: PACK_STEP },
+  { boundarySlack: .8, overlapGap: 5, step: PACK_STEP },
+  { boundarySlack: 1.05, overlapGap: 2, step: PACK_STEP },
+  { boundarySlack: 1.25, overlapGap: 0, step: PACK_STEP * 1.5 },
+];
 const MIN_SIDEBAR_WIDTH = 340;
 const MAX_SIDEBAR_WIDTH = 680;
 let resizeState = null;
@@ -779,26 +785,24 @@ function rectsOverlap(a, b, gap = 0) {
     && a.y + a.h + gap > b.y;
 }
 
-function cardCorners(rect) {
-  return [
-    [rect.x, rect.y],
-    [rect.x + rect.w, rect.y],
-    [rect.x, rect.y + rect.h],
-    [rect.x + rect.w, rect.y + rect.h],
-    [rect.x + rect.w / 2, rect.y + rect.h / 2],
-  ];
+function rectCenter(rect) {
+  return [rect.x + rect.w / 2, rect.y + rect.h / 2];
 }
 
 function pointDistance(point, circle) {
   return Math.hypot(point[0] - circle.cx, point[1] - circle.cy);
 }
 
-function isInsideCircle(rect, circle, margin) {
-  return cardCorners(rect).every((point) => pointDistance(point, circle) <= circle.r - margin);
+function cardBoundarySlack(rect, amount) {
+  return Math.min(rect.w, rect.h) * amount;
 }
 
-function isOutsideCircle(rect, circle, margin) {
-  return cardCorners(rect).every((point) => pointDistance(point, circle) >= circle.r + margin);
+function isMostlyInsideCircle(rect, circle, margin, slack = 0) {
+  return pointDistance(rectCenter(rect), circle) <= circle.r - margin + cardBoundarySlack(rect, slack);
+}
+
+function isMostlyOutsideCircle(rect, circle, margin, slack = 0) {
+  return pointDistance(rectCenter(rect), circle) >= circle.r + margin - cardBoundarySlack(rect, slack);
 }
 
 function clamp(value, min, max) {
@@ -874,14 +878,16 @@ function sizeConceptForStage(concept, stage, scale = 1) {
   concept.stage = stage;
 }
 
-function isPackedPlacementValid(concept, x, y, placedRects) {
+function isPackedPlacementValid(concept, x, y, placedRects, options = {}) {
   const rect = rectFor(concept, x, y, concept.h);
   const circle = VENN_CIRCLES[concept.stage];
-  if (!isInsideCircle(rect, circle, BORDER_GAP)) return false;
-  if (circle.prev && !isOutsideCircle(rect, VENN_CIRCLES[circle.prev], BORDER_GAP)) return false;
+  const boundarySlack = options.boundarySlack ?? .55;
+  const overlapGap = options.overlapGap ?? CARD_GAP;
+  if (!isMostlyInsideCircle(rect, circle, BORDER_GAP, boundarySlack)) return false;
+  if (circle.prev && !isMostlyOutsideCircle(rect, VENN_CIRCLES[circle.prev], BORDER_GAP, boundarySlack)) return false;
   if (Object.values(LABEL_BOUNDS).some((label) => rectsOverlap(rect, label, LABEL_GAP))) return false;
   if (PROGRESSION_BOUNDS.some((arrow) => rectsOverlap(rect, arrow, ARROW_GAP))) return false;
-  return !placedRects.some((placed) => rectsOverlap(rect, placed, CARD_GAP));
+  return !placedRects.some((placed) => rectsOverlap(rect, placed, overlapGap));
 }
 
 function scorePackedPlacement(concept, x, y, lane, stageIndex) {
@@ -904,6 +910,77 @@ function scorePackedPlacement(concept, x, y, lane, stageIndex) {
   return radialScore + horizontalScore + verticalScore + flowScore;
 }
 
+function packStage(stage, stageIndex, conceptById, placedRects, options) {
+  const step = options.step || PACK_STEP;
+
+  for (const scale of CARD_SCALE_STEPS) {
+    const stageRects = [];
+    const stageConcepts = STAGE_CONCEPTS[stage]
+      .map((id) => conceptById.get(id))
+      .filter(Boolean);
+
+    stageConcepts.forEach((concept) => sizeConceptForStage(concept, stage, scale));
+    stageConcepts.sort((a, b) => b.w * b.h - a.w * a.h || a.title.localeCompare(b.title));
+
+    const placements = [];
+    let failed = false;
+
+    stageConcepts.forEach((concept, index) => {
+      if (failed) return;
+      const lane = laneOffset(index);
+      let best = null;
+      const occupiedRects = [...placedRects, ...stageRects];
+
+      for (let y = 120; y < MAP_HEIGHT - 120; y += step) {
+        for (let x = 36; x < MAP_WIDTH - 120; x += step) {
+          if (!isPackedPlacementValid(concept, x, y, occupiedRects, options)) continue;
+          const score = scorePackedPlacement(concept, x, y, lane, stageIndex);
+          if (!best || score < best.score) best = { x, y, score };
+        }
+      }
+
+      if (!best) {
+        failed = true;
+        return;
+      }
+
+      placements.push({ concept, x: best.x, y: best.y });
+      stageRects.push(rectFor(concept, best.x, best.y, concept.h));
+    });
+
+    if (!failed) return { placements, stageRects };
+  }
+
+  return null;
+}
+
+function fallbackStageLayout(stage, stageIndex, conceptById, placedRects) {
+  const stageConcepts = STAGE_CONCEPTS[stage]
+    .map((id) => conceptById.get(id))
+    .filter(Boolean);
+  const circle = VENN_CIRCLES[stage];
+  const previousRadius = circle.prev ? VENN_CIRCLES[circle.prev].r : 0;
+  const radius = stage === 'ai' ? circle.r * .6 : (previousRadius + circle.r) / 2;
+  const arcStart = -128;
+  const arcEnd = 128;
+  const placements = [];
+  const stageRects = [];
+
+  stageConcepts.forEach((concept, index) => {
+    sizeConceptForStage(concept, stage, CARD_SCALE_STEPS[CARD_SCALE_STEPS.length - 1]);
+    const angle = (arcStart + ((arcEnd - arcStart) * (index + .5)) / stageConcepts.length) * Math.PI / 180;
+    const wave = index % 2 === 0 ? -34 : 34;
+    const centerX = circle.cx + Math.cos(angle) * radius + stageIndex * 18;
+    const centerY = circle.cy + Math.sin(angle) * radius + wave;
+    const x = clamp(Math.round(centerX - concept.w / 2), 24, MAP_WIDTH - concept.w - 24);
+    const y = clamp(Math.round(centerY - concept.h / 2), 72, MAP_HEIGHT - concept.h - 72);
+    placements.push({ concept, x, y });
+    stageRects.push(rectFor(concept, x, y, concept.h));
+  });
+
+  return { placements, stageRects };
+}
+
 function assignInitialLayout() {
   const conceptById = new Map(concepts.map((concept) => [concept.id, concept]));
   const placedRects = [];
@@ -911,48 +988,12 @@ function assignInitialLayout() {
   STAGE_ORDER.forEach((stage, stageIndex) => {
     let packedStage = null;
 
-    for (const scale of CARD_SCALE_STEPS) {
-      const stageRects = [];
-      const stageConcepts = STAGE_CONCEPTS[stage]
-        .map((id) => conceptById.get(id))
-        .filter(Boolean);
-
-      stageConcepts.forEach((concept) => sizeConceptForStage(concept, stage, scale));
-      stageConcepts.sort((a, b) => b.w * b.h - a.w * a.h || a.title.localeCompare(b.title));
-
-      const placements = [];
-      let failed = false;
-
-      stageConcepts.forEach((concept, index) => {
-        if (failed) return;
-        const lane = laneOffset(index);
-        let best = null;
-        const occupiedRects = [...placedRects, ...stageRects];
-
-        for (let y = 120; y < MAP_HEIGHT - 120; y += PACK_STEP) {
-          for (let x = 36; x < MAP_WIDTH - 120; x += PACK_STEP) {
-            if (!isPackedPlacementValid(concept, x, y, occupiedRects)) continue;
-            const score = scorePackedPlacement(concept, x, y, lane, stageIndex);
-            if (!best || score < best.score) best = { x, y, score };
-          }
-        }
-
-        if (!best) {
-          failed = true;
-          return;
-        }
-
-        placements.push({ concept, x: best.x, y: best.y });
-        stageRects.push(rectFor(concept, best.x, best.y, concept.h));
-      });
-
-      if (!failed) {
-        packedStage = { placements, stageRects };
-        break;
-      }
+    for (const pass of PACKING_PASSES) {
+      packedStage = packStage(stage, stageIndex, conceptById, placedRects, pass);
+      if (packedStage) break;
     }
 
-    if (!packedStage) return;
+    if (!packedStage) packedStage = fallbackStageLayout(stage, stageIndex, conceptById, placedRects);
 
     packedStage.placements.forEach(({ concept, x, y }) => {
       concept.x = x;
