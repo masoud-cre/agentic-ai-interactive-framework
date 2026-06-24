@@ -928,7 +928,7 @@ function createNodes() {
   nodeLayer.innerHTML = '';
   for (const concept of concepts) {
     const seed = Array.from(concept.id).reduce((sum, char) => sum + char.charCodeAt(0), 0);
-    const wiggleDistance = 1.2;
+    const wiggleDistance = 1.56;
     const floatX = (1 + (seed % 2) * 0.5) * wiggleDistance;
     const floatY = (1 + ((seed >> 2) % 2) * 0.5) * wiggleDistance;
     const direction = seed % 2 === 0 ? 1 : -1;
@@ -1019,7 +1019,7 @@ function endCardDrag() {
 
 function selectConcept(id) {
   if (!byId.has(id)) return;
-  state.selectedId = id;
+  state.selectedId = state.selectedId === id ? null : id;
   render();
 }
 
